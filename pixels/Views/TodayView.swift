@@ -9,6 +9,8 @@ import SwiftUI
 import SwiftData
 
 struct TodayView: View {
+    @State private var showingCalendar = false
+
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
     
     @Query private var allActivities: [Activity]
@@ -70,12 +72,22 @@ struct TodayView: View {
                     .font(.system(size: 28, weight: .black))
             }
             Spacer()
+            Button {
+                showingCalendar = true
+            } label: {
+                Image(systemName: "calendar")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.primary)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 12)
         .padding(.bottom, 8)
+        .sheet(isPresented: $showingCalendar) {
+            CalendarPickerView(selectedDate: $selectedDate, isPresented: $showingCalendar)
+        }
     }
-
+    
     private func monthName(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM"

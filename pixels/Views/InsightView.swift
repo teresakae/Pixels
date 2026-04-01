@@ -20,19 +20,81 @@ struct InsightView: View {
         case year = "YEAR"
     }
 
+    // MARK: - Filtered activities by period
+    private var filteredActivities: [Activity] {
+        let cal = Calendar.current
+        let now = Date()
+        return allActivities.filter { activity in
+            switch selectedPeriod {
+            case .week:
+                let weekInterval = cal.dateInterval(of: .weekOfYear, for: now)
+                return weekInterval?.contains(activity.date) ?? false
+            case .month:
+                return cal.isDate(activity.date, equalTo: now, toGranularity: .month)
+            case .year:
+                return cal.isDate(activity.date, equalTo: now, toGranularity: .year)
+            }
+        }
+    }
+
+    // MARK: - Date range for pixel grid
+    private var gridDates: [Date] {
+        let cal = Calendar.current
+        let now = Date()
+        switch selectedPeriod {
+        case .week:
+            guard let weekInterval = cal.dateInterval(of: .weekOfYear, for: now) else { return [] }
+            var dates: [Date] = []
+            var current = cal.startOfDay(for: weekInterval.start)
+            while current < weekInterval.end {
+                dates.append(current)
+                current = cal.date(byAdding: .day, value: 1, to: current)!
+            }
+            return dates
+        case .month:
+            guard let range = cal.range(of: .day, in: .month, for: now),
+                  let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: now))
+            else { return [] }
+            return range.compactMap { cal.date(byAdding: .day, value: $0 - 1, to: monthStart) }
+        case .year:
+            return [] // PixelGridView handles year internally
+        }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+
                 headerView
                 periodPicker
-                PixelGridView(activities: allActivities, categories: allCategories)
-                CategoryLegendView(categories: allCategories, activities: allActivities)
-                StatsView(categories: allCategories, activities: allActivities)
+
+                // Pixel grid
+                switch selectedPeriod {
+                case .year:
+                    PixelGridView(activities: filteredActivities, categories: allCategories)
+
+                case .month:
+                    MonthPixelView(
+                        dates: gridDates,
+                        activities: filteredActivities,
+                        categories: allCategories
+                    )
+
+                case .week:
+                    WeekPixelView(
+                        dates: gridDates,
+                        activities: filteredActivities,
+                        categories: allCategories
+                    )
+                }
+
+                CategoryLegendView(categories: allCategories, activities: filteredActivities)
+                StatsView(categories: allCategories, activities: filteredActivities)
             }
             .padding(.bottom, 32)
         }
     }
-          
+
     // MARK: - Header
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -54,30 +116,5 @@ struct InsightView: View {
         }
         .pickerStyle(.segmented)
         .padding(.horizontal, 16)
-    }
-
-    // MARK: - Placeholders (we'll replace these one by one)
-    private var placeholderPixelGrid: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color(.systemGray6))
-            .frame(height: 200)
-            .overlay(Text("Pixel Grid").foregroundStyle(.secondary))
-            .padding(.horizontal, 16)
-    }
-
-    private var placeholderLegend: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color(.systemGray6))
-            .frame(height: 44)
-            .overlay(Text("Legend").foregroundStyle(.secondary))
-            .padding(.horizontal, 16)
-    }
-
-    private var placeholderStats: some View {
-        RoundedRectangle(cornerRadius: 12)
-            .fill(Color(.systemGray6))
-            .frame(height: 120)
-            .overlay(Text("Stats").foregroundStyle(.secondary))
-            .padding(.horizontal, 16)
     }
 }

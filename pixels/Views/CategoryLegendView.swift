@@ -5,6 +5,7 @@
 //  Created by Teresa Kae on 02/04/26.
 //
 
+
 import SwiftUI
 
 struct CategoryLegendView: View {
