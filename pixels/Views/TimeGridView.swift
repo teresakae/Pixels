@@ -137,15 +137,20 @@ struct ActivityBlockView: View {
     let rowHeight: CGFloat
     let timeColumnWidth: CGFloat
 
+    @Environment(\.modelContext) private var modelContext
+    @State private var dragOffset: CGFloat = 0
+    @State private var lastSnappedSlots: Int = 0
+
     var body: some View {
-        let blockHeight = CGFloat(activity.durationSlots) * rowHeight
+        let currentSlots = activity.durationSlots
+        let blockHeight = CGFloat(currentSlots) * rowHeight + dragOffset
         let yOffset = CGFloat(activity.startSlot) * rowHeight
-        let xOffset = timeColumnWidth + 8 + 16   // timeCol + gap + horizontal padding
+        let xOffset = timeColumnWidth + 8 + 16
 
         RoundedRectangle(cornerRadius: 12)
             .fill(activity.category?.color ?? Color(.systemGray4))
             .frame(maxWidth: .infinity)
-            .frame(height: blockHeight)
+            .frame(height: max(rowHeight, blockHeight))
             .overlay(alignment: .topLeading) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(activity.detail)
@@ -167,11 +172,43 @@ struct ActivityBlockView: View {
                 }
                 .padding(10)
             }
+            // Drag bottom handle
+            .overlay(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(.white.opacity(0.6))
+                    .frame(width: 36, height: 4)
+                    .padding(.bottom, 6)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                let rawOffset = value.translation.height
+                                dragOffset = rawOffset
+
+                                // Calculate snapped slots
+                                let extraSlots = Int((rawOffset / rowHeight).rounded())
+                                let newSlots = max(1, activity.durationSlots + extraSlots)
+
+                                if newSlots != lastSnappedSlots {
+                                    lastSnappedSlots = newSlots
+                                    // Haptic tick on each snap
+                                    let impact = UIImpactFeedbackGenerator(style: .light)
+                                    impact.impactOccurred()
+                                }
+                            }
+                            .onEnded { value in
+                                let extraSlots = Int((value.translation.height / rowHeight).rounded())
+                                let newSlots = max(1, activity.durationSlots + extraSlots)
+                                activity.durationSlots = newSlots
+                                activity.updatedAt = Date()
+                                dragOffset = 0
+                                lastSnappedSlots = 0
+                            }
+                    )
+            }
             .padding(.leading, xOffset)
             .padding(.trailing, 16)
             .offset(y: yOffset)
             .frame(maxWidth: .infinity, alignment: .leading)
-            // position it absolutely within the ZStack
             .frame(maxHeight: .infinity, alignment: .top)
     }
 }
