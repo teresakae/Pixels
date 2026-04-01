@@ -21,34 +21,18 @@ struct InsightView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-
-                    // Header
-                    headerView
-
-                    // Segmented Control
-                    periodPicker
-
-                    // Pixel Grid
-                    // PixelGridView goes here (next step)
-                    placeholderPixelGrid
-
-                    // Legend
-                    // CategoryLegendView goes here
-                    placeholderLegend
-
-                    // Stats
-                    // StatsView goes here
-                    placeholderStats
-                }
-                .padding(.bottom, 32)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                headerView
+                periodPicker
+                PixelGridView(activities: allActivities, categories: allCategories)
+                CategoryLegendView(categories: allCategories, activities: allActivities)
+                StatsView(categories: allCategories, activities: allActivities)
             }
-            .navigationBarHidden(true)
+            .padding(.bottom, 32)
         }
     }
-
+          
     // MARK: - Header
     private var headerView: some View {
         VStack(alignment: .leading, spacing: 2) {
