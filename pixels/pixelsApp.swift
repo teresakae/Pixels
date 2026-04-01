@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct pixelsApp: App {
@@ -13,5 +14,11 @@ struct pixelsApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: [Category.self, SubCategory.self, Activity.self],
+                        onSetup: { result in
+            if case .failure(let error) = result {
+                print("SwiftData setup failed: \(error)")
+            }
+        })
     }
 }
