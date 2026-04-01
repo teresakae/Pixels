@@ -14,6 +14,7 @@
 		135856182F7D8C3F00115473 /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139D97F22F7CC864005300CB /* Activity.swift */; };
 		135856192F7D8C4B00115473 /* ColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139D97F32F7CC87C005300CB /* ColorExtension.swift */; };
 		1358561B2F7D8D3600115473 /* DateStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1358561A2F7D8D3600115473 /* DateStripView.swift */; };
+		1358561D2F7D8EA400115473 /* TimeGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1358561C2F7D8EA400115473 /* TimeGridView.swift */; };
 		13D8BDBD2F7D84010024BAAB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13D8BDBA2F7D84010024BAAB /* Assets.xcassets */; };
 		13D8BDBE2F7D84010024BAAB /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D8BDBB2F7D84010024BAAB /* ContentView.swift */; };
 		13D8BDBF2F7D84010024BAAB /* pixelsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13D8BDBC2F7D84010024BAAB /* pixelsApp.swift */; };
@@ -21,6 +22,7 @@
 
 /* Begin PBXFileReference section */
 		1358561A2F7D8D3600115473 /* DateStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateStripView.swift; sourceTree = "<group>"; };
+		1358561C2F7D8EA400115473 /* TimeGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeGridView.swift; sourceTree = "<group>"; };
 		139D97E02F7CC779005300CB /* pixels.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pixels.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		139D97F02F7CC846005300CB /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
 		139D97F12F7CC859005300CB /* Subcategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Subcategory.swift; sourceTree = "<group>"; };
@@ -86,6 +88,7 @@
 		13D8BDC12F7D8A100024BAAB /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				1358561C2F7D8EA400115473 /* TimeGridView.swift */,
 				1358561A2F7D8D3600115473 /* DateStripView.swift */,
 				13D8BDC32F7D8A3B0024BAAB /* InsightView.swift */,
 				13D8BDC22F7D8A160024BAAB /* TodayView.swift */,
@@ -172,6 +175,7 @@
 				1358561B2F7D8D3600115473 /* DateStripView.swift in Sources */,
 				135856152F7D8BD900115473 /* TodayView.swift in Sources */,
 				13D8BDBF2F7D84010024BAAB /* pixelsApp.swift in Sources */,
+				1358561D2F7D8EA400115473 /* TimeGridView.swift in Sources */,
 				135856162F7D8C3A00115473 /* Subcategory.swift in Sources */,
 				135856172F7D8C3A00115473 /* Category.swift in Sources */,
 			);

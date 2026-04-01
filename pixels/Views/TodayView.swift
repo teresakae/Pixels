@@ -10,30 +10,41 @@ import SwiftData
 
 struct TodayView: View {
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
+    
+    @Query private var allActivities: [Activity]
 
+    private var activitiesForSelectedDate: [Activity] {
+        allActivities.filter {
+            Calendar.current.isDate($0.date, inSameDayAs: selectedDate)
+        }
+    }
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Header
                 headerView
-
+                
                 // Date Strip
                 DateStripView(selectedDate: $selectedDate)
                     .padding(.vertical, 8)
-
+                
                 Divider()
-
-                // Time Grid (placeholder for now)
-                ScrollView {
-                    Text("Time grid coming next")
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 40)
-                }
+                
+                // Time Grid
+                TimeGridView(
+                    selectedDate: selectedDate,
+                    activities: activitiesForSelectedDate,
+                    onSlotTap: { slot in
+                        print("Tapped slot \(slot)")  // form sheet comes next
+                    },
+                    onActivityTap: { activity in
+                        print("Tapped activity \(activity.detail)")  // edit comes next
+                    }
+                )
+                .navigationBarTitleDisplayMode(.inline)
             }
-            .navigationBarTitleDisplayMode(.inline)
         }
     }
-
     private var headerView: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
