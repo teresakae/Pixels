@@ -12,6 +12,9 @@ struct TodayView: View {
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
     
     @Query private var allActivities: [Activity]
+    @State private var showingForm = false
+    @State private var tappedSlot: Int = 0
+    @State private var tappedActivity: Activity? = nil
 
     private var activitiesForSelectedDate: [Activity] {
         allActivities.filter {
@@ -35,13 +38,26 @@ struct TodayView: View {
                     selectedDate: selectedDate,
                     activities: activitiesForSelectedDate,
                     onSlotTap: { slot in
-                        print("Tapped slot \(slot)")  // form sheet comes next
+                        tappedSlot = slot
+                            tappedActivity = nil
+                            showingForm = true
                     },
                     onActivityTap: { activity in
-                        print("Tapped activity \(activity.detail)")  // edit comes next
+                        tappedActivity = activity
+                            tappedSlot = activity.startSlot
+                            showingForm = true
+                        
+                        
                     }
                 )
                 .navigationBarTitleDisplayMode(.inline)
+                .sheet(isPresented: $showingForm) {
+                    ActivityFormView(
+                        selectedDate: selectedDate,
+                        initialSlot: tappedSlot,
+                        existingActivity: tappedActivity
+                    )
+                }
             }
         }
     }
