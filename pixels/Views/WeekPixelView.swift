@@ -50,12 +50,6 @@ struct WeekPixelView: View {
         }
         .padding(.horizontal, 16)
     }
-
-    private func dayKey(_ date: Date) -> String {
-        let cal = Calendar.current
-        let d = cal.dateComponents([.year, .month, .day], from: date)
-        return "\(d.year!)-\(d.month!)-\(d.day!)"
-    }
 }
 
 // Safe array subscript
