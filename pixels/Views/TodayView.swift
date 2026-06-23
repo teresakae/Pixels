@@ -2,17 +2,12 @@
 //  TodayView.swift
 //  pixels
 //
-//  Created by Teresa Kae on 02/04/26.
-//
 
 import SwiftUI
 import SwiftData
 
 struct TodayView: View {
-    @State private var showingCalendar = false
-    @State private var showingSettings = false
     @State private var showingForm = false
-
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
     @State private var tappedSlot: Int = 0
     @State private var tappedActivity: Activity? = nil
@@ -27,34 +22,37 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                headerView
+            ZStack {
+                Color.pixels.background.ignoresSafeArea()
 
-                DateStripView(selectedDate: $selectedDate)
-                    .padding(.vertical, 8)
+                VStack(spacing: 0) {
+                    headerView
+                    PixelsDivider()
 
-                Divider()
+                    DateStripView(selectedDate: $selectedDate)
+                        .padding(.vertical, 8)
 
-                TimeGridView(
-                    selectedDate: selectedDate,
-                    activities: activitiesForSelectedDate,
-                    onSlotTap: { slot in
-                        tappedSlot = slot
-                        tappedActivity = nil
-                        showingForm = true
-                    },
-                    onActivityTap: { activity in
-                        tappedActivity = activity
-                        tappedSlot = activity.startSlot
-                        showingForm = true
-                    }
-                )
-                .navigationBarTitleDisplayMode(.inline)
+                    Rectangle()
+                        .fill(Color.pixels.borderStrong)
+                        .frame(height: PixelsLayout.BorderWidth.strong)
+
+                    TimeGridView(
+                        selectedDate: selectedDate,
+                        activities: activitiesForSelectedDate,
+                        onSlotTap: { slot in
+                            tappedSlot = slot
+                            tappedActivity = nil
+                            showingForm = true
+                        },
+                        onActivityTap: { activity in
+                            tappedActivity = activity
+                            tappedSlot = activity.startSlot
+                            showingForm = true
+                        }
+                    )
+                }
             }
-            // All three sheets live here, at the same level
-            .sheet(isPresented: $showingCalendar) {
-                CalendarPickerView(selectedDate: $selectedDate, isPresented: $showingCalendar)
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showingForm) {
                 ActivityFormView(
                     selectedDate: selectedDate,
@@ -62,46 +60,79 @@ struct TodayView: View {
                     existingActivity: tappedActivity
                 )
             }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-            }
         }
     }
+
+    // MARK: - Header
 
     private var headerView: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("So, what did you do in")
-                    .font(.system(size: 16, weight: .regular))
-                Text(monthName(from: selectedDate).uppercased() + "?")
-                    .font(.system(size: 28, weight: .black))
-            }
-            Spacer()
-            HStack(spacing: 16) {
-                Button {
-                    showingCalendar = true
-                } label: {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 20))
-                        .foregroundStyle(.primary)
-                }
-                Button {
-                    showingSettings = true
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 20))
-                        .foregroundStyle(.primary)
+        VStack(alignment: .leading, spacing: 4) {
+            Text(eyebrowText)
+                .pixelsEyebrow()
+
+            HStack(alignment: .center, spacing: 0) {
+                Text("Your day, in colour.")
+                    .font(.pixels.header)
+                    .foregroundStyle(Color.pixels.textPrimary)
+
+                Spacer()
+
+                if !activitiesForSelectedDate.isEmpty {
+                    colorDots
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 8)
+        .padding(.horizontal, PixelsLayout.Spacing.margin)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
     }
 
-    private func monthName(from date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
-        return formatter.string(from: date)
+    private var colorDots: some View {
+        let names = uniqueCategoryNames(from: activitiesForSelectedDate)
+        return HStack(spacing: -5) {
+            ForEach(names, id: \.self) { name in
+                Circle()
+                    .fill(Color.pixels.appearance(for: name).border)
+                    .frame(width: 12, height: 12)
+                    .overlay(
+                        Circle().strokeBorder(Color.pixels.background, lineWidth: 1.5)
+                    )
+            }
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var eyebrowText: String {
+        let cal = Calendar.current
+        let today     = cal.startOfDay(for: Date())
+        let yesterday = cal.date(byAdding: .day, value: -1, to: today)!
+
+        let monthDay = DateFormatter()
+        monthDay.dateFormat = "MMMM d"
+        let dateStr = monthDay.string(from: selectedDate)
+
+        if cal.isDate(selectedDate, inSameDayAs: today) {
+            return "Today · \(dateStr)"
+        } else if cal.isDate(selectedDate, inSameDayAs: yesterday) {
+            return "Yesterday · \(dateStr)"
+        } else {
+            let dayName = DateFormatter()
+            dayName.dateFormat = "EEEE"
+            return "\(dayName.string(from: selectedDate)) · \(dateStr)"
+        }
+    }
+
+    private func uniqueCategoryNames(from activities: [Activity]) -> [String] {
+        var seen = Set<String>()
+        var result: [String] = []
+        for activity in activities {
+            if let name = activity.category?.name, !seen.contains(name) {
+                seen.insert(name)
+                result.append(name)
+                if result.count == 3 { break }
+            }
+        }
+        return result
     }
 }
