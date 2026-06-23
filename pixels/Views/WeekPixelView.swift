@@ -11,6 +11,7 @@ struct WeekPixelView: View {
     let dates: [Date]
     let activities: [Activity]
     let categories: [Category]
+    let onDayTap: (Date) -> Void
 
     private let cellSize: CGFloat = 44
     private let cellSpacing: CGFloat = 8
@@ -45,14 +46,23 @@ struct WeekPixelView: View {
                             RoundedRectangle(cornerRadius: 10)
                                 .strokeBorder(isToday ? Color.primary.opacity(0.3) : Color.clear, lineWidth: 1.5)
                         )
+                        .onTapGesture {
+                            guard !isFuture else { return }
+                            onDayTap(date)
+                        }
                 }
             }
         }
         .padding(.horizontal, 16)
     }
+
+    private func dayKey(_ date: Date) -> String {
+        let cal = Calendar.current
+        let d = cal.dateComponents([.year, .month, .day], from: date)
+        return "\(d.year!)-\(d.month!)-\(d.day!)"
+    }
 }
 
-// Safe array subscript
 extension Array {
     subscript(safe index: Int) -> Element? {
         indices.contains(index) ? self[index] : nil

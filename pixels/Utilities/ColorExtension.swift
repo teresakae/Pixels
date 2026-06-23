@@ -5,16 +5,17 @@
 //  Created by Teresa Kae on 01/04/26.
 //
 
-//
-//  ColorExtension.swift
-//  pixels
-//
-//  Created by Teresa Kae on 01/04/26.
-//
-
 import SwiftUI
 
 extension Color {
+    func toHex() -> String? {
+            let ui = UIColor(self)
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            guard ui.getRed(&r, green: &g, blue: &b, alpha: &a) else { return nil }
+            return String(format: "#%02X%02X%02X",
+                          Int(r * 255), Int(g * 255), Int(b * 255))
+        }
+    
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0

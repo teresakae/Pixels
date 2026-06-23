@@ -15,14 +15,17 @@ class Category {
     var colorHex: String
     var isDefault: Bool
     var createdAt: Date
+    var iconName: String
 
     @Relationship(deleteRule: .cascade) var subCategories: [SubCategory] = []
     @Relationship(deleteRule: .nullify) var activities: [Activity] = []
 
-    init(name: String, colorHex: String, isDefault: Bool = false) {
+    // 🛠️ FIXED: Added iconName to the parameters and setup!
+    init(name: String, colorHex: String, iconName: String = "square.grid.2x2", isDefault: Bool = false) {
         self.id = UUID()
         self.name = name
         self.colorHex = colorHex
+        self.iconName = iconName // Maps the parameter to the property
         self.isDefault = isDefault
         self.createdAt = Date()
     }

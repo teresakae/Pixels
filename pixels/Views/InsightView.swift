@@ -13,6 +13,7 @@ struct InsightView: View {
     @Query private var allCategories: [Category]
 
     @State private var selectedPeriod: Period = .year
+    @State private var showingSettings = false
 
     enum Period: String, CaseIterable {
         case week = "WEEK"
@@ -57,41 +58,56 @@ struct InsightView: View {
             else { return [] }
             return range.compactMap { cal.date(byAdding: .day, value: $0 - 1, to: monthStart) }
         case .year:
-            return [] // PixelGridView handles year internally
+            return []
         }
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    headerView
+                    periodPicker
 
-                headerView
-                periodPicker
+                    switch selectedPeriod {
+                    case .year:
+                        PixelGridView(activities: filteredActivities, categories: allCategories, onDayTap: { _ in })
+                    case .month:
+                        MonthPixelView(
+                            dates: gridDates,
+                            activities: filteredActivities,
+                            categories: allCategories,
+                            onDayTap: { _ in }
+                        )
+                    case .week:
+                        WeekPixelView(
+                            dates: gridDates,
+                            activities: filteredActivities,
+                            categories: allCategories,
+                            onDayTap: { _ in }
+                        )
+                    }
 
-                // Pixel grid
-                switch selectedPeriod {
-                case .year:
-                    PixelGridView(activities: filteredActivities, categories: allCategories)
-
-                case .month:
-                    MonthPixelView(
-                        dates: gridDates,
-                        activities: filteredActivities,
-                        categories: allCategories
-                    )
-
-                case .week:
-                    WeekPixelView(
-                        dates: gridDates,
-                        activities: filteredActivities,
-                        categories: allCategories
-                    )
+                    CategoryLegendView(categories: allCategories, activities: filteredActivities)
+                    StatsView(categories: allCategories, activities: filteredActivities)
                 }
-
-                CategoryLegendView(categories: allCategories, activities: filteredActivities)
-                StatsView(categories: allCategories, activities: filteredActivities)
+                .padding(.bottom, 32)
             }
-            .padding(.bottom, 32)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 20))
+                            .foregroundStyle(.primary)
+                    }
+                }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
         }
     }
 

@@ -31,6 +31,9 @@ struct ActivityFormView: View {
 
     @State private var showDeleteConfirm = false
     @State private var showOverlapWarning = false
+    
+    @State private var showCategoryPicker = false
+    @State private var showSubCategoryPicker = false
 
     @Query private var allActivities: [Activity]
 
@@ -55,25 +58,62 @@ struct ActivityFormView: View {
 
                 // Category
                 Section("Category") {
-                    Picker("Main Category", selection: $selectedCategory) {
-                        Text("Select…").tag(Optional<Category>(nil))
-                        ForEach(categories) { cat in
-                            HStack {
-                                Circle()
-                                    .fill(cat.color)
-                                    .frame(width: 12, height: 12)
+                    Button {
+                        showCategoryPicker = true
+                    } label: {
+                        HStack {
+                            if let cat = selectedCategory {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 5)
+                                        .fill(cat.color)
+                                        .frame(width: 26, height: 26)
+                                    Image(systemName: cat.iconName)
+                                        .font(.caption2)
+                                        .foregroundStyle(.white.opacity(0.9))
+                                }
                                 Text(cat.name)
+                                    .foregroundStyle(.primary)
+                            } else {
+                                Text("Select category…")
+                                    .foregroundStyle(.secondary)
                             }
-                            .tag(Optional(cat))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
                         }
+                    }
+                    .sheet(isPresented: $showCategoryPicker) {
+                        CategoryPickerSheet(
+                            categories: categories,
+                            selected: $selectedCategory,
+                            onSelect: {
+                                // Clear subcategory if category changed
+                                selectedSubCategory = nil
+                                showCategoryPicker = false
+                            }
+                        )
                     }
 
                     if let cat = selectedCategory, !cat.subCategories.isEmpty {
-                        Picker("Sub Category", selection: $selectedSubCategory) {
-                            Text("None").tag(Optional<SubCategory>(nil))
-                            ForEach(cat.subCategories) { sub in
-                                Text(sub.name).tag(Optional(sub))
+                        Button {
+                            showSubCategoryPicker = true
+                        } label: {
+                            HStack {
+                                Text(selectedSubCategory?.name ?? "None")
+                                    .foregroundStyle(selectedSubCategory == nil ? .secondary : .primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
                             }
+                        }
+                        .sheet(isPresented: $showSubCategoryPicker) {
+                            SubCategoryPickerSheet(
+                                subCategories: cat.subCategories,
+                                selected: $selectedSubCategory,
+                                onSelect: { showSubCategoryPicker = false }
+                            )
                         }
                     }
                 }
@@ -190,5 +230,111 @@ struct ActivityFormView: View {
         let hour = slot / 2
         let minute = slot % 2 == 0 ? "00" : "30"
         return String(format: "%02d:%@", hour, minute)
+    }
+}
+
+// MARK: - Category picker sheet
+
+private struct CategoryPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let categories: [Category]
+    @Binding var selected: Category?
+    let onSelect: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List(categories) { cat in
+                Button {
+                    selected = cat
+                    onSelect()
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(cat.color)
+                                .frame(width: 32, height: 32)
+                            Image(systemName: cat.iconName)
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.9))
+                        }
+                        Text(cat.name)
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        if selected?.id == cat.id {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint) // 🛠️ FIXED: Swapped to .tint
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle("Category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Subcategory picker sheet
+
+private struct SubCategoryPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let subCategories: [SubCategory]
+    @Binding var selected: SubCategory?
+    let onSelect: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Button {
+                    selected = nil
+                    onSelect()
+                } label: {
+                    HStack {
+                        Text("None")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        if selected == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint) // 🛠️ FIXED: Swapped to .tint
+                                .fontWeight(.semibold)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
+                ForEach(subCategories) { sub in
+                    Button {
+                        selected = sub
+                        onSelect()
+                    } label: {
+                        HStack {
+                            Text(sub.name)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            if selected?.id == sub.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint) // 🛠️ FIXED: Swapped to .tint
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .navigationTitle("Sub-category")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
     }
 }

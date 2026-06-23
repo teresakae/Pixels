@@ -16,10 +16,16 @@ struct TimeGridView: View {
 
     @State private var rowHeight: CGFloat = 56
     @State private var baseRowHeight: CGFloat = 56
+    @GestureState private var magnifyScale: CGFloat = 1.0
+
     private let timeColumnWidth: CGFloat = 52
     private let minRowHeight: CGFloat = 32
     private let maxRowHeight: CGFloat = 80
     private let totalSlots = 48
+
+    private var displayRowHeight: CGFloat {
+        (baseRowHeight * magnifyScale).clamped(to: minRowHeight...maxRowHeight)
+    }
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -30,7 +36,7 @@ struct TimeGridView: View {
                             SlotRowView(
                                 slot: slot,
                                 timeColumnWidth: timeColumnWidth,
-                                rowHeight: rowHeight,
+                                rowHeight: displayRowHeight,
                                 isOccupied: isOccupied(slot)
                             )
                             .onTapGesture {
@@ -43,25 +49,24 @@ struct TimeGridView: View {
                     }
 
                     ForEach(activities) { activity in
-                        ActivityBlockView(
+                        ActivityBlockContainer(
                             activity: activity,
-                            rowHeight: rowHeight,
-                            timeColumnWidth: timeColumnWidth
+                            rowHeight: displayRowHeight,
+                            timeColumnWidth: timeColumnWidth,
+                            onTap: { onActivityTap(activity) },
+                            allActivities: activities
                         )
-                        .onTapGesture {
-                            onActivityTap(activity)
-                        }
                     }
                 }
                 .padding(.horizontal, 16)
             }
             .simultaneousGesture(
                 MagnificationGesture()
-                    .onChanged { value in
-                        let newHeight = (baseRowHeight * value).clamped(to: minRowHeight...maxRowHeight)
-                        rowHeight = newHeight
+                    .updating($magnifyScale) { value, state, _ in
+                        state = value
                     }
-                    .onEnded { _ in
+                    .onEnded { value in
+                        rowHeight = (baseRowHeight * value).clamped(to: minRowHeight...maxRowHeight)
                         baseRowHeight = rowHeight
                     }
             )
@@ -84,6 +89,32 @@ struct TimeGridView: View {
         let hour = cal.component(.hour, from: now)
         let minute = cal.component(.minute, from: now)
         return hour * 2 + (minute >= 30 ? 1 : 0)
+    }
+}
+
+// MARK: - Equatable container
+private struct ActivityBlockContainer: View, Equatable {
+    let activity: Activity
+    let rowHeight: CGFloat
+    let timeColumnWidth: CGFloat
+    let onTap: () -> Void
+    let allActivities: [Activity]
+
+    static func == (lhs: ActivityBlockContainer, rhs: ActivityBlockContainer) -> Bool {
+        lhs.activity.id == rhs.activity.id &&
+        lhs.activity.startSlot == rhs.activity.startSlot &&
+        lhs.activity.durationSlots == rhs.activity.durationSlots &&
+        lhs.rowHeight == rhs.rowHeight
+    }
+
+    var body: some View {
+        ActivityBlockView(
+            activity: activity,
+            rowHeight: rowHeight,
+            timeColumnWidth: timeColumnWidth,
+            allActivities: allActivities
+        )
+        .onTapGesture { onTap() }
     }
 }
 
@@ -143,6 +174,7 @@ struct ActivityBlockView: View {
     let activity: Activity
     let rowHeight: CGFloat
     let timeColumnWidth: CGFloat
+    let allActivities: [Activity]
 
     @Environment(\.modelContext) private var modelContext
     @State private var dragOffset: CGFloat = 0
@@ -159,7 +191,7 @@ struct ActivityBlockView: View {
     private var subtitleColor: Color {
         blockColor.isLight ? Color(hex: "#2C2C2C").opacity(0.65) : Color.white.opacity(0.85)
     }
-    
+
     var body: some View {
         let blockHeight = CGFloat(activity.durationSlots) * rowHeight + dragOffset
         let yOffset = CGFloat(activity.startSlot) * rowHeight
@@ -208,10 +240,22 @@ struct ActivityBlockView: View {
                             }
                             .onEnded { value in
                                 let extraSlots = Int((value.translation.height / rowHeight).rounded())
-                                activity.durationSlots = max(1, activity.durationSlots + extraSlots)
+                                let newDuration = max(1, activity.durationSlots + extraSlots)
+
+                                // Only push forward if we're extending
+                                if newDuration > activity.durationSlots {
+                                    pushChainForward(
+                                        from: activity.startSlot + newDuration,
+                                        excluding: activity,
+                                        activities: allActivities
+                                    )
+                                }
+
+                                activity.durationSlots = newDuration
                                 activity.updatedAt = Date()
                                 dragOffset = 0
                                 lastSnappedSlots = 0
+                                try? modelContext.save()
                             }
                     )
             }
@@ -220,5 +264,25 @@ struct ActivityBlockView: View {
             .offset(y: yOffset)
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    // Recursively push any activity that starts before `slot` forward,
+    // chaining through subsequent activities if needed.
+    private func pushChainForward(from slot: Int, excluding: Activity, activities: [Activity]) {
+        // Find the next activity that would be overlapped
+        let sorted = activities
+            .filter { $0.id != excluding.id }
+            .sorted { $0.startSlot < $1.startSlot }
+
+        var requiredStart = slot
+        for other in sorted {
+            guard other.startSlot >= excluding.startSlot else { continue }
+            if other.startSlot < requiredStart {
+                other.startSlot = requiredStart
+                other.updatedAt = Date()
+            }
+            // Advance the required start for the next activity in the chain
+            requiredStart = other.startSlot + other.durationSlots
+        }
     }
 }

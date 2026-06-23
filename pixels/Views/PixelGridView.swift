@@ -11,10 +11,10 @@ import SwiftData
 struct PixelGridView: View {
     let activities: [Activity]
     let categories: [Category]
+    let onDayTap: (Date) -> Void
 
-    // Lookup: date string → dominant category color
     private var dominantColorByDay: [String: Color] {
-        var slotsByDay: [String: [String: Int]] = [:] // [dateKey: [categoryName: slotCount]]
+        var slotsByDay: [String: [String: Int]] = [:]
 
         for activity in activities {
             let key = dayKey(activity.date)
@@ -24,7 +24,6 @@ struct PixelGridView: View {
 
         var result: [String: Color] = [:]
         for (dateKey, catSlots) in slotsByDay {
-            // Dominant = most slots. Tie → alphabetically first
             let dominant = catSlots.sorted {
                 $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key
             }.first?.key
@@ -37,7 +36,6 @@ struct PixelGridView: View {
         return result
     }
 
-    // All months in the current year
     private var months: [Date] {
         let cal = Calendar.current
         let year = cal.component(.year, from: Date())
@@ -58,27 +56,23 @@ struct PixelGridView: View {
         .padding(.horizontal, 16)
     }
 
-    // MARK: - Month Row
     private func monthRow(for monthStart: Date) -> some View {
-        let cal = Calendar.current
         let days = daysInMonth(monthStart)
         let monthLabel = monthAbbrev(monthStart)
 
         return HStack(alignment: .center, spacing: 0) {
-            // Month label
             Text(monthLabel)
                 .font(.system(size: 11, weight: .medium).monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(width: 28, alignment: .leading)
 
-            // Day cells
             HStack(spacing: cellSpacing) {
                 ForEach(days, id: \.self) { date in
                     let key = dayKey(date)
                     let isFuture = date > Calendar.current.startOfDay(for: Date())
                     let color = dominantColorByDay[key]
 
-                    RoundedRectangle(cornerRadius: 2) // !! change later if looks weird - eg. 4 to be more rounded
+                    RoundedRectangle(cornerRadius: 2)
                         .fill(
                             isFuture
                                 ? Color(.systemGray5).opacity(0.4)
@@ -89,12 +83,15 @@ struct PixelGridView: View {
                             RoundedRectangle(cornerRadius: 2)
                                 .strokeBorder(Color(.separator).opacity(0.2), lineWidth: 0.5)
                         )
+                        .onTapGesture {
+                            guard !isFuture else { return }
+                            onDayTap(date)
+                        }
                 }
             }
         }
     }
 
-    // MARK: - Helpers
     private func daysInMonth(_ monthStart: Date) -> [Date] {
         let cal = Calendar.current
         guard let range = cal.range(of: .day, in: .month, for: monthStart) else { return [] }

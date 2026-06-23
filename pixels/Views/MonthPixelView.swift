@@ -11,6 +11,7 @@ struct MonthPixelView: View {
     let dates: [Date]
     let activities: [Activity]
     let categories: [Category]
+    let onDayTap: (Date) -> Void
 
     private let cellSize: CGFloat = 32
     private let cellSpacing: CGFloat = 6
@@ -25,12 +26,10 @@ struct MonthPixelView: View {
         let paddedDates: [Date?] = Array(repeating: nil, count: firstWeekdayOffset) + dates.map { Optional($0) }
         let rows = stride(from: 0, to: paddedDates.count, by: columns).map { start -> [Date?] in
             let slice = Array(paddedDates[start..<min(start + columns, paddedDates.count)])
-            // Pad the last row to always be 7 cells
             return slice + Array(repeating: nil, count: columns - slice.count)
         }
 
         VStack(alignment: .center, spacing: cellSpacing) {
-            // Day headers
             HStack(spacing: cellSpacing) {
                 ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { d in
                     Text(d)
@@ -55,8 +54,11 @@ struct MonthPixelView: View {
                                         : (color ?? Color(.systemGray5))
                                 )
                                 .frame(width: cellSize, height: cellSize)
+                                .onTapGesture {
+                                    guard !isFuture else { return }
+                                    onDayTap(date)
+                                }
                         } else {
-                            // Empty spacer cell
                             Color.clear
                                 .frame(width: cellSize, height: cellSize)
                         }
@@ -67,15 +69,13 @@ struct MonthPixelView: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
     }
-    
-    // Returns how many empty cells to pad before the 1st
+
     private func weekdayOffset(for date: Date) -> Int {
         let cal = Calendar.current
-        let weekday = cal.component(.weekday, from: date) // 1 = Sunday
-        // Convert to Monday-first (Mon=0, Tue=1 … Sun=6)
+        let weekday = cal.component(.weekday, from: date)
         return (weekday + 5) % 7
     }
-    
+
     private func dayKey(_ date: Date) -> String {
         let cal = Calendar.current
         let d = cal.dateComponents([.year, .month, .day], from: date)
