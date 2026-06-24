@@ -7,8 +7,8 @@ import SwiftUI
 import SwiftData
 
 struct TodayView: View {
+    @Binding var selectedDate: Date
     @State private var showingForm = false
-    @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
     @State private var tappedSlot: Int = 0
     @State private var tappedActivity: Activity? = nil
 

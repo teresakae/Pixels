@@ -9,6 +9,9 @@ import SwiftUI
 import SwiftData
 
 struct InsightView: View {
+    @Binding var selectedTab: Int
+    @Binding var selectedDate: Date
+
     @Query private var allActivities: [Activity]
     @Query private var allCategories: [Category]
 
@@ -105,21 +108,30 @@ struct InsightView: View {
                                 PixelGridView(
                                     activities: filteredActivities,
                                     categories: allCategories,
-                                    onDayTap: { _ in }
+                                    onDayTap: { date in
+                                        selectedDate = date
+                                        selectedTab = 0
+                                    }
                                 )
                             case .month:
                                 MonthPixelView(
                                     dates: gridDates,
                                     activities: filteredActivities,
                                     categories: allCategories,
-                                    onDayTap: { _ in }
+                                    onDayTap: { date in
+                                        selectedDate = date
+                                        selectedTab = 0
+                                    }
                                 )
                             case .week:
                                 WeekPixelView(
                                     dates: gridDates,
                                     activities: filteredActivities,
                                     categories: allCategories,
-                                    onDayTap: { _ in }
+                                    onDayTap: { date in
+                                        selectedDate = date
+                                        selectedTab = 0
+                                    }
                                 )
                             }
                         }

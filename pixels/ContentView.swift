@@ -12,6 +12,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var categories: [Category]
     @State private var selectedTab = 0
+    @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
 
     init() {
         // Fully suppress the system UITabBar — kills its shadow line too
@@ -23,10 +24,10 @@ struct ContentView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedTab) {
-                TodayView()
+                TodayView(selectedDate: $selectedDate)
                     .tag(0)
 
-                InsightView()
+                InsightView(selectedTab: $selectedTab, selectedDate: $selectedDate)
                     .tag(1)
 
                 CategoriesView()
