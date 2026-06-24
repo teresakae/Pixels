@@ -19,8 +19,8 @@ struct ActivityFormView: View {
 
     @State private var selectedCategory: Category? = nil
     @State private var selectedSubCategory: SubCategory? = nil
-    @State private var activityName: String = ""   // stored as detail (or detail prefix)
-    @State private var activityNotes: String = ""  // stored as detail suffix after "\n\n"
+    @State private var activityName: String = ""
+    @State private var activityNotes: String = ""
     @State private var startSlot: Int = 0
     @State private var durationSlots: Int = 2
 
@@ -59,9 +59,9 @@ struct ActivityFormView: View {
             VStack(spacing: 0) {
                 headerBar
                 PixelsDivider()
-                timeDisplay
+                timeSection
                 PixelsDivider()
-                durationScroller
+                durationSection
                 PixelsDivider()
                 categorySection
                 PixelsDivider()
@@ -97,12 +97,11 @@ struct ActivityFormView: View {
 
     private var headerBar: some View {
         ZStack {
-            // Centered live title
             Text(headerTitle)
-                .font(.system(.body, design: .default).weight(.bold))
+                .font(.pixels.blockTitle)
                 .foregroundStyle(Color.pixels.textPrimary)
                 .lineLimit(1)
-                .padding(.horizontal, 100) // keep clear of buttons
+                .padding(.horizontal, 100)
 
             HStack {
                 Button { dismiss() } label: {
@@ -120,7 +119,7 @@ struct ActivityFormView: View {
 
                 Button { attemptSave() } label: {
                     Text("Save")
-                        .font(.system(.body, design: .default).weight(.bold))
+                        .font(.pixels.blockTitle)
                         .foregroundStyle(Color.pixels.textPrimary)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 11)
@@ -135,18 +134,38 @@ struct ActivityFormView: View {
         .padding(.vertical, 16)
     }
 
-    // MARK: - Time display
+    // MARK: - Time section
+    // START is a wheel picker; END and DURATION are derived read-only.
 
-    private var timeDisplay: some View {
+    private var timeSection: some View {
         HStack(spacing: 0) {
-            timeColumn(label: "START",    value: slotToTimeString(startSlot))
-            columnDivider
+            VStack(alignment: .leading, spacing: 4) {
+                Text("START").pixelsEyebrow()
+                Picker("", selection: $startSlot) {
+                    ForEach(0..<48, id: \.self) { slot in
+                        Text(slotToTimeString(slot))
+                            .font(.pixels.timeDisplay)
+                            .tag(slot)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 110)
+                .clipped()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Rectangle()
+                .fill(Color.pixels.borderDefault)
+                .frame(width: PixelsLayout.BorderWidth.default, height: 80)
+
             timeColumn(label: "END",      value: slotToTimeString(startSlot + durationSlots))
-            columnDivider
+            Rectangle()
+                .fill(Color.pixels.borderDefault)
+                .frame(width: PixelsLayout.BorderWidth.default, height: 80)
             timeColumn(label: "DURATION", value: durationLabel(durationSlots))
         }
         .padding(.horizontal, PixelsLayout.Spacing.margin)
-        .padding(.vertical, 20)
+        .padding(.vertical, 12)
     }
 
     private func timeColumn(label: String, value: String) -> some View {
@@ -157,70 +176,75 @@ struct ActivityFormView: View {
                 .foregroundStyle(Color.pixels.textPrimary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 12)
     }
 
-    private var columnDivider: some View {
-        Rectangle()
-            .fill(Color.pixels.borderDefault)
-            .frame(width: PixelsLayout.BorderWidth.default, height: 40)
-    }
+    // MARK: - Duration drum roll
+    // Fixed center highlight stays still; options scroll behind it.
+    // Tapping any item scrolls it to center and selects it.
 
-    // MARK: - Duration scroller
-
-    private var durationScroller: some View {
+    private var durationSection: some View {
         VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        ForEach(durationOptions, id: \.slots) { option in
-                            let isSelected = durationSlots == option.slots
-                            let distance   = abs(durationSlots - option.slots)
-                            Button {
-                                durationSlots = option.slots
-                            } label: {
-                                Text(option.label)
-                                    .font(isSelected
-                                          ? Font.system(.body, design: .default).weight(.bold)
-                                          : Font.pixels.body)
-                                    .foregroundStyle(
-                                        isSelected ? Color.pixels.textPrimary
-                                        : distance == 1 ? Color.pixels.textSecondary
-                                        : Color.pixels.textTertiary
-                                    )
-                                    .padding(.horizontal, 18)
-                                    .padding(.vertical, 10)
-                                    .background {
-                                        if isSelected {
-                                            RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.scrollerSelected)
-                                                .fill(Color.pixels.background)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.scrollerSelected)
-                                                        .strokeBorder(Color.pixels.borderStrong, lineWidth: PixelsLayout.BorderWidth.default)
-                                                )
-                                                .shadow(color: Color.pixels.textPrimary.opacity(0.06), radius: 4, x: 0, y: 2)
+            GeometryReader { geo in
+                let itemWidth: CGFloat = 76
+                let sidePad = (geo.size.width - itemWidth) / 2
+
+                ZStack {
+                    // Fixed selection indicator — does not move
+                    RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.scrollerSelected)
+                        .fill(Color.pixels.background)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.scrollerSelected)
+                                .strokeBorder(Color.pixels.borderStrong, lineWidth: PixelsLayout.BorderWidth.default)
+                        )
+                        .frame(width: itemWidth, height: 44)
+                        .shadow(color: Color.pixels.textPrimary.opacity(0.06), radius: 4, x: 0, y: 2)
+
+                    ScrollViewReader { proxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 0) {
+                                Color.clear.frame(width: sidePad, height: 44)
+                                ForEach(durationOptions, id: \.slots) { option in
+                                    let isSelected = durationSlots == option.slots
+                                    let distance   = abs(durationSlots - option.slots)
+                                    Text(option.label)
+                                        .font(isSelected ? .pixels.blockTitle : .pixels.body)
+                                        .foregroundStyle(
+                                            isSelected    ? Color.pixels.textPrimary   :
+                                            distance == 1 ? Color.pixels.textSecondary :
+                                                            Color.pixels.textTertiary
+                                        )
+                                        .frame(width: itemWidth, height: 44)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                durationSlots = option.slots
+                                            }
                                         }
-                                    }
+                                        .id(option.slots)
+                                }
+                                Color.clear.frame(width: sidePad, height: 44)
                             }
-                            .buttonStyle(.plain)
-                            .id(option.slots)
+                        }
+                        .onChange(of: durationSlots) { _, slots in
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                proxy.scrollTo(slots, anchor: .center)
+                            }
+                        }
+                        .onAppear {
+                            proxy.scrollTo(durationSlots, anchor: .center)
                         }
                     }
-                    .padding(.horizontal, PixelsLayout.Spacing.margin)
-                    .padding(.vertical, 10)
                 }
+                .frame(height: 60)
                 .background(
                     RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.scroller)
                         .fill(Color.pixels.surface)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.scroller))
-                .padding(.horizontal, PixelsLayout.Spacing.margin)
-                .onChange(of: durationSlots) { _, _ in
-                    withAnimation { proxy.scrollTo(durationSlots, anchor: .center) }
-                }
-                .onAppear {
-                    proxy.scrollTo(durationSlots, anchor: .center)
-                }
             }
+            .frame(height: 60)
+            .padding(.horizontal, PixelsLayout.Spacing.margin)
             .padding(.top, 16)
 
             RoundedRectangle(cornerRadius: 2)
@@ -233,6 +257,8 @@ struct ActivityFormView: View {
     }
 
     // MARK: - Category grid
+    // Unselected: 45% opacity, tertiary label.
+    // Selected: full opacity, 2pt border, scale 1.04, primary bold label.
 
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -278,15 +304,19 @@ struct ActivityFormView: View {
                         )
 
                     Image(systemName: cat.iconName)
-                        .font(.system(size: 20, weight: .regular))
+                        .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
                         .foregroundStyle(appearance.border)
                 }
                 .frame(width: PixelsLayout.Size.categoryIcon.width, height: PixelsLayout.Size.categoryIcon.height)
+                .opacity(isSelected ? 1.0 : 0.45)
+                .scaleEffect(isSelected ? 1.04 : 1.0)
                 .animation(.easeInOut(duration: 0.15), value: isSelected)
 
                 Text(cat.name)
                     .font(.pixels.caption)
-                    .foregroundStyle(Color.pixels.textSecondary)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundStyle(isSelected ? Color.pixels.textPrimary : Color.pixels.textTertiary)
+                    .animation(.easeInOut(duration: 0.15), value: isSelected)
             }
         }
         .buttonStyle(.plain)
@@ -372,11 +402,10 @@ struct ActivityFormView: View {
 
     private var detailSection: some View {
         VStack(spacing: 0) {
-            // Activity name
             VStack(alignment: .leading, spacing: 10) {
                 Text("What did you do?").pixelsEyebrow()
                 TextField("write here...", text: $activityName)
-                    .font(.system(size: 15, weight: .regular))
+                    .font(.pixels.body)
                     .foregroundStyle(Color.pixels.textPrimary)
                     .tint(Color.pixels.accent)
                     .focused($nameFocused)
@@ -387,11 +416,10 @@ struct ActivityFormView: View {
 
             PixelsDivider()
 
-            // Extra notes
             VStack(alignment: .leading, spacing: 10) {
                 Text("Add details").pixelsEyebrow()
                 TextField("write here...", text: $activityNotes, axis: .vertical)
-                    .font(.system(size: 15, weight: .regular))
+                    .font(.pixels.body)
                     .foregroundStyle(Color.pixels.textPrimary)
                     .tint(Color.pixels.accent)
                     .lineLimit(3...)
@@ -424,7 +452,6 @@ struct ActivityFormView: View {
             selectedCategory    = activity.category
             selectedSubCategory = activity.subCategory
 
-            // detail stores "name\n\nnotes" — split back out
             let parts = activity.detail.components(separatedBy: "\n\n")
             activityName  = parts[0]
             activityNotes = parts.count > 1 ? parts.dropFirst().joined(separator: "\n\n") : ""

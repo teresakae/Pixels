@@ -15,7 +15,7 @@ Do not change SwiftData models, business logic, or data flow. Do not add new dep
 ## File layout
 ```
 pixels/
-  ContentView.swift              — tab bar shell
+  ContentView.swift              — tab bar shell (DONE)
   Utilities/
     DesignSystem.swift           — single source of truth for all tokens
     ColorExtension.swift         — Color(hex:), isLight, clamped(to:)
@@ -25,12 +25,12 @@ pixels/
     DateStripView.swift          — horizontal date picker (DONE)
     TimeGridView.swift           — 48-slot time grid + activity blocks (DONE)
     ActivityFormView.swift       — add/edit activity sheet (DONE)
-    InsightView.swift            — Tab 1 (NOT YET REDESIGNED)
-    WeekPixelView.swift          — week colour grid (NOT YET REDESIGNED)
-    MonthPixelView.swift         — month colour grid (NOT YET REDESIGNED)
-    PixelGridView.swift          — year colour grid (NOT YET REDESIGNED)
-    CategoryLegendView.swift     — legend pills (NOT YET REDESIGNED)
-    StatsView.swift              — stat cards (NOT YET REDESIGNED)
+    InsightView.swift            — Tab 1 (DONE)
+    WeekPixelView.swift          — week colour grid (DONE)
+    MonthPixelView.swift         — month colour grid (DONE)
+    PixelGridView.swift          — year colour grid (DONE)
+    CategoryLegendView.swift     — legend pills (DONE)
+    StatsView.swift              — stat cards (DONE)
     CategoriesView.swift         — Tab 2 (untouched, low priority)
     SettingsView.swift           — Tab 3 (untouched, low priority)
 ```
@@ -87,6 +87,8 @@ pixels/
 - System UITabBar fully suppressed in `init()` via `UITabBar.appearance()`
 - Active tab: `.semibold` weight, `tabBarActive` colour; inactive: `.regular`, `tabBarInactive`
 - 4 tabs: Today (index 0), Insight (1), Categories (2), Settings (3)
+- `selectedDate: Date` lifted to `ContentView` `@State`; passed as `@Binding` to both `TodayView` and `InsightView`
+- `selectedTab` passed as `@Binding` to `InsightView` to allow pixel-tap navigation
 
 ### Add Activity sheet (ActivityFormView.swift)
 - Presented as `.sheet` with `.presentationDetents([.large])`, `.presentationDragIndicator(.hidden)`, `.presentationBackground(Color.pixels.background)`
@@ -109,12 +111,14 @@ pixels/
 - `DateStripView` with 8pt vertical padding
 - 1.5pt `borderStrong` rule after date strip
 - `TimeGridView` fills remaining space
+- `selectedDate` is now `@Binding` (owned by `ContentView`) — set externally when navigating from Insight pixel tap
 
 ### DateStripView.swift
 - 365-day horizontal scroll, auto-scrolls to today on appear
 - Selected cell: `accent` fill, `CornerRadius.dateCell`, `textPrimary` text
 - Inactive: day name in `textTertiary`, day number in `textPrimary`
 - Fonts: `dateLabel` (day name), `dateNumber` (day number)
+- Highlight is driven solely by `date == selectedDate` — no activity check
 
 ### TimeGridView.swift
 **Layout fix (critical — do not revert):**
@@ -132,34 +136,77 @@ SwiftUI's `.offset()` moves VISUALS only, not the layout frame used for hit test
 - `ActivityBlockView` uses `Color.pixels.appearance(for: category.name)` for fill/border
 - Adaptive title text: `appearance.fill.isLight ? Color.pixels.textPrimary : .white`
 
+### Insight tab (InsightView.swift)
+- `NavigationStack` with `.toolbar(.hidden, for: .navigationBar)`
+- Full background: `Color.pixels.background.ignoresSafeArea()` in ZStack
+- Custom header: eyebrow ("This week" / "This month" / "2026") + bold title ("Your week/month/year, in colour.")
+- Custom period switcher: three pill buttons (WEEK / MONTH / YEAR) in `surface` pill container; active pill has `accent` fill; `Font.pixels.eyebrow`, `textPrimary` active / `textTertiary` inactive
+- Receives `@Binding var selectedTab: Int` and `@Binding var selectedDate: Date` from ContentView
+- Week and month `onDayTap` closures: set `selectedDate = date`, then `selectedTab = 0`
+- Year `onDayTap` closure: same — set `selectedDate = date`, then `selectedTab = 0`
+- `CategoryLegendView` and `StatsView` rendered below pixel grid with padding
+
+### WeekPixelView.swift
+- 7 cells in an HStack, one per day of current week
+- Cell size: `Size.weekCell` (44×58pt), corner radius: `CornerRadius.weekCell` (6pt), gap: `Spacing.weekCellGap` (2pt)
+- Day label + day number stacked vertically inside each cell
+- Logged: `appearance(for: dominantCategory).fill`; unlogged/future: `Color.pixels.futureDot`
+- Tap fires `onDayTap(date)`
+
+### MonthPixelView.swift
+- Grid of current month's days in a `LazyVGrid`
+- Cell size: `Size.monthCell` (32×32pt), corner radius: `CornerRadius.monthCell` (4pt), gap: `Spacing.monthCellGap` (3pt)
+- Logged: `appearance(for: dominantCategory).fill`; unlogged/future: `Color.pixels.futureDot`
+- Tap fires `onDayTap(date)`
+
+### PixelGridView.swift (year view — transposed grid)
+- **Layout**: 31 rows (days 1–31) × 12 columns (months J–D). Previous layout was 12 rows × 31 columns.
+- Month letters pinned as header row (single letter, `Font.pixels.caption`, `textTertiary`)
+- Day numbers down left column (20pt wide, right-aligned, `Font.pixels.caption`, `textTertiary`)
+- Cell width computed from screen width: `(UIScreen.main.bounds.width - 32 - 20 - 11 * 1.5) / 12`; height = width (square)
+- Corner radius: `CornerRadius.yearCell` (2pt), gap: `Spacing.yearCellGap` (1.5pt)
+- Invalid dates (e.g. Feb 30) → `Color.clear` placeholder, same frame size
+- `dateFor(month:day:)` validates via Calendar round-trip — if date normalises to wrong month, returns nil
+- Logged: `appearance(for: dominantCategory).fill`; unlogged/future: `Color(hex: "#E0D5CC").opacity(0.28)`
+- Tap uses `.contentShape(Rectangle())` for full-frame hit area without enlarging visible cell
+- Tap fires `onDayTap(date)` — wired in InsightView to navigate to Today tab
+- Scrolls vertically (tall grid — 31 rows)
+
+### CategoryLegendView.swift
+- Horizontal scroll of category pills
+- Each pill: `surface` background, `borderSurface` border, colour dot using `appearance(for:).border`, `textSecondary` label
+
+### StatsView.swift
+- Stat cards on `surface` background, `borderSurface` 0.5px border, `CornerRadius.card`
+- `textPrimary` numbers, `textTertiary` labels
+
 ---
 
-## Next task: Task 4 — Insight tab
+## Post-MVP refinements backlog
 
-The Insight tab (`InsightView.swift`) is currently **unstyled prototype code** — hardcoded fonts, system colours, no design tokens. The sub-views (`WeekPixelView`, `MonthPixelView`, `PixelGridView`, `CategoryLegendView`, `StatsView`) are also unstyled.
+### Today tab
 
-### Current InsightView structure (what exists, needs redesign):
-- `NavigationStack` with system nav bar (needs to go — hide it, add custom header like TodayView)
-- Period picker: `Picker(.segmented)` with WEEK / MONTH / YEAR (needs restyling as pills or custom segment)
-- Hardcoded fonts: `Font.system(size: 16)`, `Font.system(size: 28, weight: .black)` etc.
-- Header text: "A glimpse of" / "INSIGHT" — restyle with design system
-- Settings gear icon in toolbar → moves to Settings tab, remove from here
-- `PixelGridView`, `MonthPixelView`, `WeekPixelView` each take `(dates:activities:categories:onDayTap:)` — keep these signatures
-- `CategoryLegendView(categories:activities:)` and `StatsView(categories:activities:)` — keep these signatures
+**Pixel drag-to-move (jitter):** Dragging, holding, and moving interactions are still jittery. Needs smoother animation/gesture logic.
 
-### What the Insight tab should look like (apply same pattern as TodayView):
-1. **Header**: eyebrow label (e.g. "This week", "This month", "2026") + bold title like "Your year, in colour." — same VStack pattern as TodayView header. No system nav bar.
-2. **Period switcher**: three pill buttons (WEEK / MONTH / YEAR) styled as a custom segmented row using `surface` background, `accent` fill for active. NOT a system `Picker`.
-3. **Pixel grid**: the coloured day grid (keep existing logic, just apply token colours for fills, borders, empty states)
-4. **Legend**: category legend pills — `surface` background pill with `borderSurface` border, colour dot using `appearance(for:).border`, `textSecondary` label text
-5. **Stats cards**: cards on `surface` background with `borderSurface` 0.5px border, `CornerRadius.card`, `textPrimary` numbers, `textTertiary` labels
+**Micro-interactions:** Transitions and animations for specific taps, plus haptic feedback. Specific targets TBD.
 
-### Key things to match from the design system in pixel grid views:
-- Logged day → fill with `appearance(for: dominantCategory).fill`, border `appearance.border`
-- Unlogged/future day → `Color.pixels.futureDot` (already a token, 28% opacity cream)
-- Cell corner radii: `CornerRadius.weekCell` = 6, `CornerRadius.monthCell` = 4, `CornerRadius.yearCell` = 2
-- Cell sizes: `Size.weekCell` = 44×58, `Size.monthCell` = 32×32
-- Cell gaps: `Spacing.weekCellGap` = 2, `Spacing.monthCellGap` = 3, `Spacing.yearCellGap` = 1.5
+**Horizontal calendar (pagination):** Restrict the date strip to exactly 7 days (one week) at a time. Scrolling past the visible bounds should paginate entirely to the previous/next week rather than free-scrolling continuously.
+
+### Add Activity sheet
+
+**Visual hierarchy:** Layout feels off — needs design review.
+
+**Time selection:** Start and end times cannot be changed once on this screen. Needs a vertical scroll or wheel picker to adjust them.
+
+**Duration picker:** Horizontal scrolling is awkward. The selection highlight/indicator should remain fixed in the centre while the time options scroll horizontally behind it.
+
+**Category selection contrast:** Active vs. inactive states are too hard to differentiate. Needs better UI contrast.
+
+**Add details field:** Text box needs multi-line input (allow Return key for new lines). Likely requires `TextEditor` instead of `TextField`.
+
+### Insight tab
+
+**Empty-pixel highlight bug:** Tapping an unlogged (empty) pixel correctly navigates to the Today tab and sets the date, but the pink `accent` highlight does not appear on the date strip for that day. Tapping a filled pixel works correctly (highlight appears). Root cause: `DateStripView` highlight depends only on `selectedDate == date`, which is correct — the issue is likely a timing or binding update ordering problem when `selectedTab` and `selectedDate` are set in the same closure. Investigate whether wrapping the assignment in `DispatchQueue.main.async` or using `withAnimation` resolves the race.
 
 ---
 
