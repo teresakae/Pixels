@@ -13,38 +13,46 @@ struct WeekPixelView: View {
     let categories: [Category]
     let onDayTap: (Date) -> Void
 
-    private let cellSize: CGFloat = 44
-    private let cellSpacing: CGFloat = 8
-
-    private var dominantColorByDay: [String: Color] {
-        buildDominantColors(from: activities, categories: categories)
+    private var dominantNameByDay: [String: String] {
+        buildDominantNames(from: activities)
     }
 
     private let dayLabels = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
 
     var body: some View {
-        HStack(spacing: cellSpacing) {
+        HStack(spacing: PixelsLayout.Spacing.weekCellGap) {
             ForEach(Array(dates.enumerated()), id: \.offset) { index, date in
                 let key = dayKey(date)
                 let isFuture = date > Calendar.current.startOfDay(for: Date())
-                let color = dominantColorByDay[key]
+                let catName = dominantNameByDay[key]
+                let appearance = catName.map { Color.pixels.appearance(for: $0) }
                 let isToday = Calendar.current.isDateInToday(date)
 
                 VStack(spacing: 6) {
                     Text(dayLabels[safe: index] ?? "")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(isToday ? .primary : .secondary)
+                        .font(.pixels.caption)
+                        .foregroundStyle(isToday ? Color.pixels.textPrimary : Color.pixels.textTertiary)
 
-                    RoundedRectangle(cornerRadius: 10)
+                    RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.weekCell)
                         .fill(
                             isFuture
-                                ? Color(.systemGray5).opacity(0.4)
-                                : (color ?? Color(.systemGray5))
+                                ? Color.pixels.surface
+                                : (appearance?.fill ?? Color.pixels.surface)
                         )
-                        .frame(width: cellSize, height: cellSize)
+                        .frame(
+                            width: PixelsLayout.Size.weekCell.width,
+                            height: PixelsLayout.Size.weekCell.height
+                        )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .strokeBorder(isToday ? Color.primary.opacity(0.3) : Color.clear, lineWidth: 1.5)
+                            RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.weekCell)
+                                .strokeBorder(
+                                    isToday
+                                        ? (appearance?.border ?? Color.pixels.accent)
+                                        : Color.pixels.borderSurface,
+                                    lineWidth: isToday
+                                        ? PixelsLayout.BorderWidth.strong
+                                        : PixelsLayout.BorderWidth.default
+                                )
                         )
                         .onTapGesture {
                             guard !isFuture else { return }
@@ -53,13 +61,7 @@ struct WeekPixelView: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-    }
-
-    private func dayKey(_ date: Date) -> String {
-        let cal = Calendar.current
-        let d = cal.dateComponents([.year, .month, .day], from: date)
-        return "\(d.year!)-\(d.month!)-\(d.day!)"
+        .frame(maxWidth: .infinity, alignment: .center)
     }
 }
 

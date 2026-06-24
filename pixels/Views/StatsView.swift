@@ -11,7 +11,6 @@ struct StatsView: View {
     let categories: [Category]
     let activities: [Activity]
 
-    // Total slots per category
     private var slotsByCategory: [(Category, Int)] {
         categories.compactMap { cat in
             let total = activities
@@ -22,7 +21,6 @@ struct StatsView: View {
         .sorted { $0.1 > $1.1 }
     }
 
-    // Number of activities per category
     private var countByCategory: [(Category, Int)] {
         categories.compactMap { cat in
             let count = activities.filter { $0.category?.id == cat.id }.count
@@ -36,22 +34,21 @@ struct StatsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-
-            // Time breakdown
             statBlock(
                 title: "Time",
-                items: slotsByCategory.map { (cat, slots) in
-                    (cat, slots, "\(slots / 2)h \(slots % 2 == 0 ? "" : "30m")")
+                items: slotsByCategory.map { cat, slots in
+                    let h = slots / 2
+                    let label = slots % 2 == 0 ? "\(h)h" : "\(h)h 30m"
+                    return (cat, slots, label)
                 },
                 total: totalSlots
             )
 
-            Divider()
+            PixelsDivider()
 
-            // Frequency breakdown
             statBlock(
                 title: "Frequency",
-                items: countByCategory.map { (cat, count) in
+                items: countByCategory.map { cat, count in
                     (cat, count, "\(count)×")
                 },
                 total: totalCount
@@ -59,52 +56,54 @@ struct StatsView: View {
         }
         .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemGray6))
+            RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.card)
+                .fill(Color.pixels.surface)
+                .overlay(
+                    RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.card)
+                        .strokeBorder(Color.pixels.borderSurface, lineWidth: PixelsLayout.BorderWidth.default)
+                )
         )
-        .padding(.horizontal, 16)
+        .padding(.horizontal, PixelsLayout.Spacing.margin)
     }
 
-    // MARK: - Reusable stat block
     private func statBlock(
         title: String,
         items: [(Category, Int, String)],
         total: Int
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased())
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .kerning(0.5)
+            Text(title)
+                .pixelsEyebrow()
 
-            // Stacked bar
             if total > 0 {
                 GeometryReader { geo in
                     HStack(spacing: 2) {
                         ForEach(items, id: \.0.id) { cat, value, _ in
+                            let appearance = Color.pixels.appearance(for: cat.name)
                             RoundedRectangle(cornerRadius: 3)
-                                .fill(cat.color)
+                                .fill(appearance.fill)
                                 .frame(width: geo.size.width * CGFloat(value) / CGFloat(total))
                         }
                     }
                 }
-                .frame(height: 20)
+                .frame(height: 16)
                 .clipShape(RoundedRectangle(cornerRadius: 3))
             }
 
-            // Labels
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 ForEach(items, id: \.0.id) { cat, _, label in
+                    let appearance = Color.pixels.appearance(for: cat.name)
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(cat.color)
+                            .fill(appearance.border)
                             .frame(width: 8, height: 8)
                         Text(cat.name)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.pixels.caption)
+                            .foregroundStyle(Color.pixels.textSecondary)
                         Spacer()
                         Text(label)
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundStyle(.secondary)
+                            .font(.pixels.caption)
+                            .foregroundStyle(Color.pixels.textTertiary)
                     }
                 }
             }

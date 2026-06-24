@@ -30,6 +30,25 @@ func buildDominantColors(from activities: [Activity], categories: [Category]) ->
     return result
 }
 
+/// Returns the dominant category name per day key (use with `Color.pixels.appearance(for:)`).
+func buildDominantNames(from activities: [Activity]) -> [String: String] {
+    var slotsByDay: [String: [String: Int]] = [:]
+    for activity in activities {
+        let key = dayKey(activity.date)
+        let catName = activity.category?.name ?? "Other"
+        slotsByDay[key, default: [:]][catName, default: 0] += activity.durationSlots
+    }
+    var result: [String: String] = [:]
+    for (dateKey, catSlots) in slotsByDay {
+        if let dominant = catSlots.sorted(by: {
+            $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key
+        }).first?.key {
+            result[dateKey] = dominant
+        }
+    }
+    return result
+}
+
 func dayKey(_ date: Date) -> String {
     let cal = Calendar.current
     let d = cal.dateComponents([.year, .month, .day], from: date)

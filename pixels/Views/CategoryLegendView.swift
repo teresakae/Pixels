@@ -5,14 +5,12 @@
 //  Created by Teresa Kae on 02/04/26.
 //
 
-
 import SwiftUI
 
 struct CategoryLegendView: View {
     let categories: [Category]
     let activities: [Activity]
 
-    // Only show categories that have at least 1 activity
     private var activeCategories: [Category] {
         categories.filter { cat in
             activities.contains { $0.category?.id == cat.id }
@@ -23,23 +21,28 @@ struct CategoryLegendView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(activeCategories) { cat in
+                    let appearance = Color.pixels.appearance(for: cat.name)
                     HStack(spacing: 6) {
                         Circle()
-                            .fill(cat.color)
-                            .frame(width: 10, height: 10)
+                            .fill(appearance.border)
+                            .frame(width: 8, height: 8)
                         Text(cat.name)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.primary)
+                            .font(.pixels.caption)
+                            .foregroundStyle(Color.pixels.textSecondary)
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
                     .background(
                         Capsule()
-                            .fill(cat.color.opacity(0.15))
+                            .fill(Color.pixels.surface)
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(Color.pixels.borderSurface, lineWidth: PixelsLayout.BorderWidth.default)
+                            )
                     )
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, PixelsLayout.Spacing.margin)
         }
     }
 }

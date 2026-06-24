@@ -13,7 +13,6 @@ struct InsightView: View {
     @Query private var allCategories: [Category]
 
     @State private var selectedPeriod: Period = .year
-    @State private var showingSettings = false
 
     enum Period: String, CaseIterable {
         case week = "WEEK"
@@ -62,75 +61,122 @@ struct InsightView: View {
         }
     }
 
+    // MARK: - Dynamic header strings
+    private var eyebrowText: String {
+        let cal = Calendar.current
+        switch selectedPeriod {
+        case .week:  return "This week"
+        case .month: return "This month"
+        case .year:  return "\(cal.component(.year, from: Date()))"
+        }
+    }
+
+    private var titleText: String {
+        switch selectedPeriod {
+        case .week:  return "Your week, in colour."
+        case .month: return "Your month, in colour."
+        case .year:  return "Your year, in colour."
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    headerView
-                    periodPicker
+            ZStack {
+                Color.pixels.background.ignoresSafeArea()
 
-                    switch selectedPeriod {
-                    case .year:
-                        PixelGridView(activities: filteredActivities, categories: allCategories, onDayTap: { _ in })
-                    case .month:
-                        MonthPixelView(
-                            dates: gridDates,
-                            activities: filteredActivities,
-                            categories: allCategories,
-                            onDayTap: { _ in }
-                        )
-                    case .week:
-                        WeekPixelView(
-                            dates: gridDates,
-                            activities: filteredActivities,
-                            categories: allCategories,
-                            onDayTap: { _ in }
-                        )
-                    }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        headerView
+                            .padding(.horizontal, PixelsLayout.Spacing.margin)
+                            .padding(.top, 12)
+                            .padding(.bottom, 16)
 
-                    CategoryLegendView(categories: allCategories, activities: filteredActivities)
-                    StatsView(categories: allCategories, activities: filteredActivities)
-                }
-                .padding(.bottom, 32)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingSettings = true
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 20))
-                            .foregroundStyle(.primary)
+                        PixelsDivider()
+
+                        periodSwitcher
+                            .padding(.horizontal, PixelsLayout.Spacing.margin)
+                            .padding(.vertical, 16)
+
+                        PixelsDivider()
+
+                        Group {
+                            switch selectedPeriod {
+                            case .year:
+                                PixelGridView(
+                                    activities: filteredActivities,
+                                    categories: allCategories,
+                                    onDayTap: { _ in }
+                                )
+                            case .month:
+                                MonthPixelView(
+                                    dates: gridDates,
+                                    activities: filteredActivities,
+                                    categories: allCategories,
+                                    onDayTap: { _ in }
+                                )
+                            case .week:
+                                WeekPixelView(
+                                    dates: gridDates,
+                                    activities: filteredActivities,
+                                    categories: allCategories,
+                                    onDayTap: { _ in }
+                                )
+                            }
+                        }
+                        .padding(.top, 16)
+
+                        CategoryLegendView(categories: allCategories, activities: filteredActivities)
+                            .padding(.top, 20)
+
+                        StatsView(categories: allCategories, activities: filteredActivities)
+                            .padding(.top, 20)
                     }
+                    .padding(.bottom, 100)
                 }
             }
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-            }
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
     // MARK: - Header
     private var headerView: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("A glimpse of")
-                .font(.system(size: 16, weight: .regular))
-            Text("INSIGHT")
-                .font(.system(size: 28, weight: .black))
+        VStack(alignment: .leading, spacing: 4) {
+            Text(eyebrowText)
+                .pixelsEyebrow()
+            Text(titleText)
+                .font(.pixels.header)
+                .foregroundStyle(Color.pixels.textPrimary)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
     }
 
-    // MARK: - Period Picker
-    private var periodPicker: some View {
-        Picker("Period", selection: $selectedPeriod) {
+    // MARK: - Custom period switcher
+    private var periodSwitcher: some View {
+        HStack(spacing: 0) {
             ForEach(Period.allCases, id: \.self) { period in
-                Text(period.rawValue).tag(period)
+                Button {
+                    selectedPeriod = period
+                } label: {
+                    Text(period.rawValue)
+                        .font(.pixels.eyebrow)
+                        .foregroundStyle(
+                            selectedPeriod == period
+                                ? Color.pixels.textPrimary
+                                : Color.pixels.textTertiary
+                        )
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.pill)
+                                .fill(selectedPeriod == period ? Color.pixels.accent : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
             }
         }
-        .pickerStyle(.segmented)
-        .padding(.horizontal, 16)
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.pill)
+                .fill(Color.pixels.surface)
+        )
     }
 }

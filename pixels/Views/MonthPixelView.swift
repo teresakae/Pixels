@@ -13,15 +13,15 @@ struct MonthPixelView: View {
     let categories: [Category]
     let onDayTap: (Date) -> Void
 
-    private let cellSize: CGFloat = 32
-    private let cellSpacing: CGFloat = 6
     private let columns = 7
 
-    private var dominantColorByDay: [String: Color] {
-        buildDominantColors(from: activities, categories: categories)
+    private var dominantNameByDay: [String: String] {
+        buildDominantNames(from: activities)
     }
 
     var body: some View {
+        let cellSize = PixelsLayout.Size.monthCell
+        let spacing = PixelsLayout.Spacing.monthCellGap
         let firstWeekdayOffset = weekdayOffset(for: dates.first ?? Date())
         let paddedDates: [Date?] = Array(repeating: nil, count: firstWeekdayOffset) + dates.map { Optional($0) }
         let rows = stride(from: 0, to: paddedDates.count, by: columns).map { start -> [Date?] in
@@ -29,56 +29,51 @@ struct MonthPixelView: View {
             return slice + Array(repeating: nil, count: columns - slice.count)
         }
 
-        VStack(alignment: .center, spacing: cellSpacing) {
-            HStack(spacing: cellSpacing) {
+        VStack(alignment: .center, spacing: spacing) {
+            HStack(spacing: spacing) {
                 ForEach(["M", "T", "W", "T", "F", "S", "S"], id: \.self) { d in
                     Text(d)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: cellSize, alignment: .center)
+                        .font(.pixels.caption)
+                        .foregroundStyle(Color.pixels.textTertiary)
+                        .frame(width: cellSize.width, alignment: .center)
                 }
             }
 
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                HStack(spacing: cellSpacing) {
+                HStack(spacing: spacing) {
                     ForEach(Array(row.enumerated()), id: \.offset) { _, date in
                         if let date = date {
                             let key = dayKey(date)
                             let isFuture = date > Calendar.current.startOfDay(for: Date())
-                            let color = dominantColorByDay[key]
+                            let catName = dominantNameByDay[key]
+                            let appearance = catName.map { Color.pixels.appearance(for: $0) }
 
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.monthCell)
                                 .fill(
                                     isFuture
-                                        ? Color(.systemGray5).opacity(0.4)
-                                        : (color ?? Color(.systemGray5))
+                                        ? Color.pixels.futureDot
+                                        : (appearance?.fill ?? Color.pixels.surface)
                                 )
-                                .frame(width: cellSize, height: cellSize)
+                                .frame(width: cellSize.width, height: cellSize.height)
                                 .onTapGesture {
                                     guard !isFuture else { return }
                                     onDayTap(date)
                                 }
                         } else {
                             Color.clear
-                                .frame(width: cellSize, height: cellSize)
+                                .frame(width: PixelsLayout.Size.monthCell.width, height: PixelsLayout.Size.monthCell.height)
                         }
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 16)
+        .padding(.horizontal, PixelsLayout.Spacing.margin)
     }
 
     private func weekdayOffset(for date: Date) -> Int {
         let cal = Calendar.current
         let weekday = cal.component(.weekday, from: date)
         return (weekday + 5) % 7
-    }
-
-    private func dayKey(_ date: Date) -> String {
-        let cal = Calendar.current
-        let d = cal.dateComponents([.year, .month, .day], from: date)
-        return "\(d.year!)-\(d.month!)-\(d.day!)"
     }
 }
