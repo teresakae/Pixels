@@ -9,6 +9,7 @@ import SwiftData
 struct TodayView: View {
     @Binding var selectedDate: Date
     @State private var showingForm = false
+    @State private var showingSettings = false
     @State private var tappedSlot: Int = 0
     @State private var tappedActivity: Activity? = nil
 
@@ -60,6 +61,10 @@ struct TodayView: View {
                     existingActivity: tappedActivity
                 )
             }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+                    .presentationBackground(Color.pixels.background)
+            }
         }
     }
 
@@ -79,6 +84,8 @@ struct TodayView: View {
 
                 if !activitiesForSelectedDate.isEmpty {
                     colorDots
+                        .contentShape(Rectangle())
+                        .onTapGesture { showingSettings = true }
                 }
             }
         }
