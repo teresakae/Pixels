@@ -34,10 +34,14 @@ struct SettingsView: View {
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
             .background(Color.pixels.background)
-            .environment(\.editMode, .constant(.active))
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    EditButton()
+                        .font(.pixels.body)
+                        .foregroundStyle(Color.pixels.textSecondary)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                         .font(.pixels.body)
@@ -155,14 +159,14 @@ struct SettingsView: View {
             let appearance = Color.pixels.appearance(for: cat.name)
             ZStack {
                 RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.categoryIcon)
-                    .fill(appearance.border)
+                    .fill(appearance.fill)
                     .overlay(
                         RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.categoryIcon)
                             .strokeBorder(appearance.border, lineWidth: PixelsLayout.BorderWidth.default)
                     )
                 Image(systemName: cat.iconName)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(Color.pixels.background)
+                    .foregroundStyle(appearance.border)
             }
             .frame(width: 28, height: 28)
 
