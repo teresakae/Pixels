@@ -10,12 +10,15 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Query private var allCategories: [Category]
     @AppStorage("iCloudEnabled") private var iCloudEnabled = false
     @AppStorage("categoryOrder") private var categoryOrderData: Data = Data()
 
     @State private var displayedCategories: [Category] = []
     @State private var showAddCategory = false
+    @State private var categoryToDelete: Category? = nil
+    @State private var showDeleteCategoryAlert = false
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -47,6 +50,17 @@ struct SettingsView: View {
         }
         .onAppear { refreshOrder() }
         .onChange(of: allCategories) { _, _ in refreshOrder() }
+        .alert(
+            "Delete \"\(categoryToDelete?.name ?? "")\"?",
+            isPresented: $showDeleteCategoryAlert
+        ) {
+            Button("Delete", role: .destructive) {
+                if let cat = categoryToDelete { deleteCategory(cat) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("All activities in this category will be uncategorised.")
+        }
     }
 
     // MARK: - Sections
@@ -59,6 +73,15 @@ struct SettingsView: View {
                 }
                 .listRowBackground(Color.pixels.surface)
                 .listRowSeparatorTint(Color.pixels.borderDefault)
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    Button {
+                        categoryToDelete = cat
+                        showDeleteCategoryAlert = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .tint(Color.pixels.accentDark)
+                }
             }
             .onMove { source, destination in
                 displayedCategories.move(fromOffsets: source, toOffset: destination)
@@ -191,6 +214,15 @@ struct SettingsView: View {
                 .foregroundStyle(foreground)
         }
         .frame(width: 28, height: 28)
+    }
+
+    // MARK: - Delete
+
+    private func deleteCategory(_ cat: Category) {
+        modelContext.delete(cat)
+        try? modelContext.save()
+        displayedCategories.removeAll { $0.id == cat.id }
+        persistOrder()
     }
 
     // MARK: - Order persistence
