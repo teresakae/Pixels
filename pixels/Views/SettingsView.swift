@@ -155,14 +155,14 @@ struct SettingsView: View {
             let appearance = Color.pixels.appearance(for: cat.name)
             ZStack {
                 RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.categoryIcon)
-                    .fill(appearance.fill)
+                    .fill(appearance.border)
                     .overlay(
                         RoundedRectangle(cornerRadius: PixelsLayout.CornerRadius.categoryIcon)
                             .strokeBorder(appearance.border, lineWidth: PixelsLayout.BorderWidth.default)
                     )
                 Image(systemName: cat.iconName)
                     .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(appearance.border)
+                    .foregroundStyle(Color.pixels.background)
             }
             .frame(width: 28, height: 28)
 
