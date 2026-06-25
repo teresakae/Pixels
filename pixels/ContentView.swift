@@ -29,12 +29,6 @@ struct ContentView: View {
 
                 InsightView(selectedTab: $selectedTab, selectedDate: $selectedDate)
                     .tag(1)
-
-                CategoriesView()
-                    .tag(2)
-
-                SettingsView()
-                    .tag(3)
             }
             .toolbar(.hidden, for: .tabBar)
 
@@ -83,10 +77,8 @@ private struct TabItem {
 }
 
 private let tabItems: [TabItem] = [
-    TabItem(icon: "square.grid.2x2", label: "Today",      tag: 0),
-    TabItem(icon: "chart.bar.xaxis", label: "Insight",    tag: 1),
-    TabItem(icon: "folder",          label: "Categories", tag: 2),
-    TabItem(icon: "gearshape",       label: "Settings",   tag: 3),
+    TabItem(icon: "square.grid.2x2", label: "Today",   tag: 0),
+    TabItem(icon: "chart.bar.xaxis", label: "Insight", tag: 1),
 ]
 
 struct FloatingTabBar: View {

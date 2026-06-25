@@ -23,9 +23,10 @@ struct PixelGridView: View {
     private let dayLabelWidth: CGFloat = 20
     private let gap = PixelsLayout.Spacing.yearCellGap
 
+    @State private var containerWidth: CGFloat = 390
+
     var body: some View {
-        let screenWidth = UIScreen.main.bounds.width
-        let cellSize = (screenWidth - 32 - dayLabelWidth - (11 * gap)) / 12
+        let cellSize = (containerWidth - 32 - dayLabelWidth - (11 * gap)) / 12
 
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: gap) {
@@ -36,6 +37,11 @@ struct PixelGridView: View {
             }
             .padding(.horizontal, PixelsLayout.Spacing.margin)
         }
+        .background(
+            GeometryReader { geo in
+                Color.clear.onAppear { containerWidth = geo.size.width }
+            }
+        )
     }
 
     private func monthHeaderRow(cellSize: CGFloat) -> some View {
