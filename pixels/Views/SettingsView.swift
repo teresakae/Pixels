@@ -19,6 +19,7 @@ struct SettingsView: View {
     @State private var showAddCategory = false
     @State private var categoryToDelete: Category? = nil
     @State private var showDeleteCategoryAlert = false
+    @State private var showICloudRestartAlert = false
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
@@ -54,6 +55,11 @@ struct SettingsView: View {
         }
         .onAppear { refreshOrder() }
         .onChange(of: allCategories) { _, _ in refreshOrder() }
+        .alert("Restart Pixels", isPresented: $showICloudRestartAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Restart Pixels to apply iCloud changes.")
+        }
         .alert(
             "Delete \"\(categoryToDelete?.name ?? "")\"?",
             isPresented: $showDeleteCategoryAlert
@@ -122,6 +128,9 @@ struct SettingsView: View {
                 Toggle("", isOn: $iCloudEnabled)
                     .tint(Color.pixels.accent)
                     .labelsHidden()
+                    .onChange(of: iCloudEnabled) { _, _ in
+                        showICloudRestartAlert = true
+                    }
             }
             .listRowBackground(Color.pixels.surface)
             .listRowSeparator(.hidden)
